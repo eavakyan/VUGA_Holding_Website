@@ -195,29 +195,64 @@
 
             // Get form data
             var formData = new FormData(this);
-            var data = {};
+            var formFields = {};
             formData.forEach(function(value, key) {
-                data[key] = value;
+                formFields[key] = value;
             });
 
+            // Combine company, subject, and message into message field
+            var combinedMessage = '';
+            if (formFields.subject) {
+                combinedMessage += 'Subject: ' + formFields.subject + '\n\n';
+            }
+            if (formFields.company) {
+                combinedMessage += 'Company: ' + formFields.company + '\n\n';
+            }
+            combinedMessage += 'Message: ' + (formFields.message || '');
+
+            var data = {
+                type: 'vugaholding',
+                name: formFields.name,
+                email: formFields.email,
+                message: combinedMessage
+            };
+
             // Basic validation
-            if (!data.name || !data.email || !data.message) {
+            if (!formFields.name || !formFields.email || !formFields.subject || !formFields.message) {
                 showFormMessage('Please fill in all required fields.', 'error');
                 return;
             }
 
-            if (!isValidEmail(data.email)) {
+            if (!isValidEmail(formFields.email)) {
                 showFormMessage('Please enter a valid email address.', 'error');
                 return;
             }
 
-            // Simulate form submission
+            // Show sending message
             showFormMessage('Sending message...', 'info');
 
-            setTimeout(function() {
+            // Submit to Resend API
+            fetch('https://contact-form-api.contact-195.workers.dev', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(function(result) {
                 showFormMessage('Thank you for your message! We will get back to you soon.', 'success');
                 contactForm.reset();
-            }, 1500);
+            })
+            .catch(function(error) {
+                showFormMessage('Sorry, there was an error sending your message. Please try again.', 'error');
+                console.error('Form submission error:', error);
+            });
         });
     }
 
